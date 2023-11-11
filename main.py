@@ -6,6 +6,7 @@ import sys
 from check_to_correct_data import all_check
 import db
 import random
+import inspect
 
 
 class MemoryGame(QMainWindow):  # основное окно с меню и игрой
@@ -82,9 +83,10 @@ class MemoryGame(QMainWindow):  # основное окно с меню и иг�
         self.button_stastic.setText('Возрастная статистика')
         self.button_stastic.clicked.connect(self.show_age_statistic)
         self.button_stastic.setEnabled(False)
+        self.button_stastic.hide()
 
         # собрание кнопок меню в layout
-        for btn in [self.button_play, self.button_records, self.button_to_register_or_login, self.button_stastic]:
+        for btn in [self.button_play, self.button_records, self.button_to_register_or_login]:
             btn.setFixedSize(500, 100)
             self.layout_for_buttons.addWidget(btn)
 
@@ -181,9 +183,10 @@ class MemoryGame(QMainWindow):  # основное окно с меню и иг�
         # показываем и скрываем нужные элементы
         self.central_widget_with_menu.hide()
         self.music_label.hide()
-        self.name_label.hide()
-        self.record_lable.hide()
-        self.record_lcd.hide()
+        if self.user:
+            self.name_label.hide()
+            self.record_lable.hide()
+            self.record_lcd.hide()
         for btn in self.music_buttons:
             btn.hide()
         self.home_button.show()
@@ -229,23 +232,26 @@ class MemoryGame(QMainWindow):  # основное окно с меню и иг�
     @pyqtSlot()
     def on_button_click(self):  # чтение нажатий пользователя и проверка на совпадение со сгенерированной
         sender = self.sender()
-        if len(self.user_sequence) == 0 or sender != self.user_sequence[-1]:
-            self.user_sequence.append(sender)
-        self.now_record_lcd.display(self.round_number - 1)
+        if sender in self.game_buttons:
+            # stack = inspect.stack()
+            # caller_frame = stack[1]
+            # caller_line = caller_frame.lineno
+            # print(caller_line)
 
-        if len(self.user_sequence) == self.buttons_to_light:
-            if self.user_sequence == self.current_sequence:
-                if self.buttons_to_light < len(self.game_buttons):
-                    self.user_sequence = []
-                    self.buttons_to_light += 1
-                    self.round_number += 1
-                    self.play()
+            if len(self.user_sequence) == 0 or sender != self.user_sequence[-1]:
+                self.user_sequence.append(sender)
+            self.now_record_lcd.display(self.round_number - 1)
+
+            if len(self.user_sequence) == self.buttons_to_light:
+                if self.user_sequence == self.current_sequence:
+                        self.user_sequence = []
+                        self.buttons_to_light += 1
+                        self.round_number += 1
+                        self.play()
                 else:
+                    print('game_over called')
                     self.game_over()
                     return
-            else:
-                self.game_over()
-                return
 
     def reset_game(self):  # перезагрузка игры
         self.game_over(False)
@@ -448,6 +454,7 @@ class MemoryGameRecords(QMainWindow):  # окно для вывода табли
         self.button_home.setText('Назад')
         self.button_home.setGeometry(0, 0, 700, 70)
         self.button_home.move(50, 715)
+        self.button_home.clicked.connect(self.home)
 
         # if self.user:
         #     print(self.user.username)
@@ -462,6 +469,11 @@ class MemoryGameRecords(QMainWindow):  # окно для вывода табли
         #         item = QTableWidgetItem(str(el))
         #         item.setFlags(Qt.ItemIsEditable)
         #         self.table_widget_for_user.setItem(0, i, item)
+
+    def home(self):
+        self.close()
+        self.memory_game = MemoryGame(self.user)
+        self.memory_game.show()
 
 
 class ErrorWindow(QDialog):  # окно, всплывающее при ошибке регистрации\входе
@@ -483,7 +495,7 @@ class ErrorWindow(QDialog):  # окно, всплывающее при ошиб�
 class ResultWindow(QDialog):  # окно, всплывающее при окончании игры, выводит результат
     def __init__(self, record):
         super().__init__()
-        self.setGeometry(0, 0, 200, 100)
+        self.setGeometry(0, 0, 220, 100)
         self.setWindowTitle('Игра закончена')
         self.central_widget = QWidget(self)
         self.layout = QVBoxLayout(self)
